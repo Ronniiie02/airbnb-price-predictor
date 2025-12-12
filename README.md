@@ -31,11 +31,7 @@ airbnb-price-predictor/
 │   └── main.js            # Frontend logic
 └── README.md
 
-🧪 Environment Setup (Recommended)
-
-⚠️ Important
-Do NOT use Python venv or the Conda base environment.
-Always use the provided Conda environment for consistency.
+🧪 Environment Setup
 
 1️⃣ Create the Conda environment
 conda env create -f environment.yml
@@ -59,25 +55,3 @@ http://127.0.0.1:8000
 
 API Documentation (Swagger UI):
 http://127.0.0.1:8000/docs
-
-🧠 Data & Model Overview
-
-Dataset: AB_NYC_2019.csv
-
-Key features:
-
-Latitude / Longitude
-
-Room type
-
-Availability
-
-Number of reviews
-
-Host listing count
-
-Target variable:
-
-Log-transformed nightly price
-
-The machine learning model is trained offline and loaded at runtime for prediction.
