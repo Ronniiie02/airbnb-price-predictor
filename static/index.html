@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYC Airbnb Pricing Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-color: #FF5A5F;
+            --secondary-color: #00A699;
+            --accent-color: #FC642D;
+            --warning-color: #FFB400;
+            --text-dark: #2C3E50;
+            --text-light: #6B7280;
+            --bg-light: #F8FAFC;
+            --border-light: #E5E7EB;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .airbnb-gradient {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: #E5484D;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 90, 95, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #008B8B;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 166, 153, 0.3);
+        }
+        
+        .form-input {
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.1);
+        }
+        
+        .tab-button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .tab-button.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .tab-button:not(.active):hover {
+            background: rgba(255, 90, 95, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.8s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="airbnb-gradient text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-home text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold">NYC Airbnb Pricing Dashboard</h1>
+                        <p class="text-white text-opacity-90 mt-1">
+                            Analyze factors affecting NYC Airbnb prices and predict optimal pricing
+                        </p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold" id="total-listings">-</div>
+                        <div class="text-sm text-white text-opacity-80">Total Listings</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold" id="avg-price">$-</div>
+                        <div class="text-sm text-white text-opacity-80">Avg Price</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Executive Summary -->
+        <section class="mb-8 fade-in">
+            <div class="card rounded-xl p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                    Executive Summary
+                </h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="metric-card rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-blue-600 mb-2" id="summary-price-range">
+                            $--$--
+                        </div>
+                        <div class="text-gray-600">Price Range (1st-99th percentile)</div>
+                    </div>
+                    <div class="metric-card rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2" id="summary-models">
+                            -
+                        </div>
+                        <div class="text-gray-600">ML Models Trained</div>
+                    </div>
+                    <div class="metric-card rounded-lg p-4 text-center">
+                        <div class="text-3xl font-bold text-purple-600 mb-2" id="summary-mae">
+                            ±$--
+                        </div>
+                        <div class="text-gray-600">Average Prediction Error</div>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <p class="text-gray-700" id="key-insight-text">
+                        <strong>Key Insight:</strong>
+                        Loading key insight based on model performance...
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Navigation -->
+        <div class="mb-8 fade-in">
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button class="tab-button active" onclick="switchTab('analysis', this)">
+                    <i class="fas fa-search mr-2"></i>
+                    Factor Analysis
+                </button>
+                <button class="tab-button" onclick="switchTab('prediction', this)">
+                    <i class="fas fa-magic mr-2"></i>
+                    Price Prediction
+                </button>
+            </div>
+        </div>
+
+        <!-- Factor Analysis Tab -->
+        <div id="analysis-tab" class="tab-content">
+            <!-- Filters -->
+            <section class="mb-8 slide-in">
+                <div class="card rounded-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-filter text-purple-600 mr-2"></i>
+                        Data Filters
+                    </h3>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Neighbourhood Group</label>
+                            <select id="filter-group" class="form-input w-full p-2" multiple>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Room Type</label>
+                            <select id="filter-room" class="form-input w-full p-2" multiple>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="price-min" class="form-input w-1/2 p-2" placeholder="Min">
+                                <input type="number" id="price-max" class="form-input w-1/2 p-2" placeholder="Max">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Nights</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="nights-min" class="form-input w-1/2 p-2" placeholder="Min">
+                                <input type="number" id="nights-max" class="form-input w-1/2 p-2" placeholder="Max">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <button onclick="applyFilters()" class="btn-primary px-6 py-2 rounded-lg font-medium">
+                            <i class="fas fa-search mr-2"></i>
+                            Apply Filters
+                        </button>
+                        <div class="text-sm text-gray-600">
+                            Showing <span id="filtered-count">-</span> of <span id="total-count">-</span> listings
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Grid -->
+            <section class="mb-8">
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
+                            Price Distribution
+                        </h4>
+                        <div id="price-distribution-chart"></div>
+                    </div>
+
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-home text-green-600 mr-2"></i>
+                            Price by Room Type
+                        </h4>
+                        <div id="price-room-type-chart"></div>
+                    </div>
+
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-map-marker-alt text-red-600 mr-2"></i>
+                            Price by Neighbourhood Group
+                        </h4>
+                        <div id="price-neighbourhood-chart"></div>
+                    </div>
+
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-star text-yellow-600 mr-2"></i>
+                            Reviews vs Price
+                        </h4>
+                        <div id="reviews-price-chart"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Map and Heatmap -->
+            <section class="mb-8">
+                <div class="grid lg:grid-cols-1 gap-8">
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-globe text-blue-600 mr-2"></i>
+                            Listings Map (size ~ price)
+                        </h4>
+                        <div id="listings-map-chart"></div>
+                    </div>
+
+                    <div class="chart-container fade-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-th text-purple-600 mr-2"></i>
+                            Price Heatmap: Neighbourhood × Room Type
+                        </h4>
+                        <div id="price-heatmap-chart"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Prediction Tab -->
+        <div id="prediction-tab" class="tab-content hidden">
+            <section class="mb-8 slide-in">
+                <div class="card rounded-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-robot text-blue-600 mr-2"></i>
+                        Model Selection
+                    </h3>
+                    <div class="grid md:grid-cols-3 gap-4" id="model-cards"></div>
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="card rounded-xl p-6 slide-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-edit text-green-600 mr-2"></i>
+                            Listing Details
+                        </h4>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Neighbourhood Group</label>
+                                <select id="pred-group" class="form-input w-full p-2" onchange="updateNeighbourhoods()"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Neighbourhood</label>
+                                <select id="pred-neighbourhood" class="form-input w-full p-2"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Room Type</label>
+                                <select id="pred-room" class="form-input w-full p-2"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Nights</label>
+                                <input type="number" id="pred-min-nights" class="form-input w-full p-2" min="1" max="365" value="2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Number of Reviews</label>
+                                <input type="number" id="pred-reviews" class="form-input w-full p-2" min="0" max="10000" value="10">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Reviews per Month</label>
+                                <input type="number" id="pred-rpm" class="form-input w-full p-2" min="0" max="50" step="0.1" value="1.0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Host Listings Count</label>
+                                <input type="number" id="pred-host-count" class="form-input w-full p-2" min="0" max="500" value="1">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Availability (days/year)</label>
+                                <input type="number" id="pred-availability" class="form-input w-full p-2" min="0" max="365" value="180">
+                            </div>
+                        </div>
+                        <button onclick="predictPrice()" class="btn-primary w-full mt-6 py-3 rounded-lg font-medium text-lg">
+                            <i class="fas fa-magic mr-2"></i>
+                            Predict Price
+                        </button>
+                    </div>
+
+                    <div class="card rounded-xl p-6 slide-in">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                            Prediction Results
+                        </h4>
+                        <div id="prediction-results" class="text-center py-8">
+                            <div class="text-gray-500">
+                                <i class="fas fa-chart-line text-6xl text-gray-300 mb-4"></i>
+                                <p>Enter listing details and click "Predict Price" to see results</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <div class="chart-container fade-in">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4">
+                        <i class="fas fa-chart-scatter text-blue-600 mr-2"></i>
+                        Model Performance: Actual vs Predicted
+                    </h4>
+                    <div id="model-performance-chart"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <div class="mb-4">
+                <h3 class="text-xl font-bold mb-2">NYC Airbnb Pricing Dashboard</h3>
+                <p class="text-gray-400">Professional data analysis and machine learning predictions</p>
+            </div>
+            <div class="text-sm text-gray-500">
+                © 2025 NYC Airbnb Pricing Dashboard. Built with FastAPI, Plotly.js, and modern web technologies.
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/main.js?v=2"></script>
+</body>
+</html>
